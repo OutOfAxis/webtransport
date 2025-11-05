@@ -1,0 +1,32 @@
+name: Electron automated build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Install missing software
+        run: choco install nasm -yv
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Set up NodeJS
+        uses: actions/setup-node@v6
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build library
+        run: npm run dobuild 
+
+      - name: Archive
+        uses: actions/upload-artifact@v5
+        with:
+          path: .
