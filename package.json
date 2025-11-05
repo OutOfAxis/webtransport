@@ -45,6 +45,11 @@
     "main",
     "test"
   ],
+  "cmake-js": {
+    "runtime": "electron",
+    "runtimeVersion": "25.4.0",
+    "arch": "x64"
+  },
   "overrides": {
     "playwright-test": {
       "playwright-core": "1.52.0"
