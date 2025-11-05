@@ -31,6 +31,21 @@ jobs:
       - name: Build library
         run: npm run dobuild 
 
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          Write-Host "Checking for build directories..."
+          $buildDirs = Get-ChildItem -Path "transports\http3-quiche" -Directory | Where-Object { $_.Name -like "build*" }
+          foreach ($dir in $buildDirs) {
+            Write-Host "Found: $($dir.FullName)"
+            $size = (Get-ChildItem -Path $dir.FullName -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
+            Write-Host "  Size: $([math]::Round($size, 2)) MB"
+            if (Test-Path "$($dir.FullName)\Release\webtransport.node") {
+              $binSize = (Get-Item "$($dir.FullName)\Release\webtransport.node").Length / 1MB
+              Write-Host "  Binary found: $([math]::Round($binSize, 2)) MB"
+            }
+          }
+
       - name: Create tarball
         shell: pwsh
         run: |
@@ -51,14 +66,34 @@ jobs:
           }
           Get-ChildItem -Path "transports\http3-quiche" -Filter "LICENSE*" | Copy-Item -Destination "release\" -Force
           
-          # Copy built binaries (adjust path based on actual build output location)
-          $buildPath = "transports\http3-quiche\build"
+          # Copy built binaries - build outputs to build_{platform}_{arch}
+          # On Windows x64, this is build_win32_x64
+          $buildPath = "transports\http3-quiche\build_win32_x64"
           if (Test-Path $buildPath) {
-            Copy-Item -Path $buildPath -Destination "release\build" -Recurse -Force
+            Copy-Item -Path $buildPath -Destination "release\build_win32_x64" -Recurse -Force
+          } else {
+            # Fallback: check for generic build directory
+            $buildPath = "transports\http3-quiche\build"
+            if (Test-Path $buildPath) {
+              Copy-Item -Path $buildPath -Destination "release\build" -Recurse -Force
+            } else {
+              Write-Warning "No build directory found. Expected build_win32_x64 or build"
+              # List what directories exist for debugging
+              Get-ChildItem -Path "transports\http3-quiche" -Directory | Where-Object { $_.Name -like "build*" } | ForEach-Object { Write-Host "Found build directory: $($_.FullName)" }
+            }
           }
           
           # Create tarball using tar
           tar -czf $tarballName -C release .
+          
+          # Report tarball size
+          $tarballSize = (Get-Item $tarballName).Length / 1MB
+          Write-Host "Created tarball: $tarballName"
+          Write-Host "Tarball size: $([math]::Round($tarballSize, 2)) MB"
+          
+          # List contents for verification
+          Write-Host "`nTarball contents:"
+          tar -tzf $tarballName | Select-Object -First 20
           
           # Set output for next step
           echo "tarball_name=$tarballName" >> $env:GITHUB_OUTPUT
