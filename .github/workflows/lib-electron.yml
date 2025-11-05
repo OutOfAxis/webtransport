@@ -2,6 +2,11 @@ name: Electron automated build
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        type: string
 
 jobs:
   build-windows:
@@ -26,7 +31,51 @@ jobs:
       - name: Build library
         run: npm run dobuild 
 
-      - name: Archive
+      - name: Create tarball
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          $tarballName = "webtransport-electron-windows-x64-$version.tar.gz"
+          
+          # Create a staging directory with built artifacts
+          New-Item -ItemType Directory -Force -Path "release" | Out-Null
+          
+          # Copy built transport package
+          Copy-Item -Path "transports\http3-quiche\lib" -Destination "release\lib" -Recurse -Force
+          if (Test-Path "transports\http3-quiche\dist") {
+            Copy-Item -Path "transports\http3-quiche\dist" -Destination "release\dist" -Recurse -Force
+          }
+          Copy-Item -Path "transports\http3-quiche\package.json" -Destination "release\package.json" -Force
+          if (Test-Path "transports\http3-quiche\README.md") {
+            Copy-Item -Path "transports\http3-quiche\README.md" -Destination "release\README.md" -Force
+          }
+          Get-ChildItem -Path "transports\http3-quiche" -Filter "LICENSE*" | Copy-Item -Destination "release\" -Force
+          
+          # Copy built binaries (adjust path based on actual build output location)
+          $buildPath = "transports\http3-quiche\build"
+          if (Test-Path $buildPath) {
+            Copy-Item -Path $buildPath -Destination "release\build" -Recurse -Force
+          }
+          
+          # Create tarball using tar
+          tar -czf $tarballName -C release .
+          
+          # Set output for next step
+          echo "tarball_name=$tarballName" >> $env:GITHUB_OUTPUT
+
+      - name: Upload tarball artifact
         uses: actions/upload-artifact@v5
         with:
-          path: .
+          name: release-tarball
+          path: "*.tar.gz"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          files: "*.tar.gz"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
