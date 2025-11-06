@@ -206,7 +206,7 @@ if (argv.length > 2) {
     '--CDnapi_build_version=' + target,
     '-O',
     'build_' + binplatform,
-    "--runtime=electron --runtime-version=25.4.0",
+    "--runtime=electron --runtime-version=26.6.10",
   ]
   if (platform === 'win32') platformargs.push('-t', 'ClangCL')
   const pbargs = []
@@ -232,7 +232,7 @@ if (argv.length > 2) {
           'cmake-js',
           '--',
           ...pbargs,
-          "--runtime=electron --runtime-version=25.4.0"
+          "--runtime=electron --runtime-version=26.6.10"
         ])
       } catch (error) {
         console.log('prebuild failed')
@@ -248,7 +248,7 @@ if (argv.length > 2) {
           '-t',
           '6',
           '--verbose',
-          "--runtime=electron --runtime-version=25.4.0"
+          "--runtime=electron --runtime-version=26.6.10"
         ])
         if (pbres === 0) break
       } catch (error) {
