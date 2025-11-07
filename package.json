@@ -47,7 +47,7 @@
   ],
   "cmake-js": {
     "runtime": "electron",
-    "runtimeVersion": "26.6.10",
+    "runtimeVersion": "25.4.0",
     "arch": "x64"
   },
   "overrides": {
